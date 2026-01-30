@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:13
+    container_name: easy-orderdb
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: easy-orderuser
+      POSTGRES_PASSWORD: easy-orderpass
+      POSTGRES_DB: easy-orderdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

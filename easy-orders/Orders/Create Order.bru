@@ -1,0 +1,23 @@
+meta {
+  name: Create Order
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/orders
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "productId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "quantity": 3
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
