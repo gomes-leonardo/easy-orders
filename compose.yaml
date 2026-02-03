@@ -8,8 +8,30 @@ services:
       POSTGRES_USER: easy-orderuser
       POSTGRES_PASSWORD: easy-orderpass
       POSTGRES_DB: easy-orderdb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U easy-orderuser -d easy-orderdb']
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  app:
+    build: .
+    ports:
+      - '5001:3000'
+    environment:
+      POSTGRES_USER: easy-orderuser
+      POSTGRES_PASSWORD: easy-orderpass
+      POSTGRES_DB: easy-orderdb
+      POSTGRES_HOST: db
+      DATABASE_URL: postgresql://easy-orderuser:easy-orderpass@db:5432/easy-orderdb
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npm start"
+    volumes:
+      - .:/app
 volumes:
   pgdata:
