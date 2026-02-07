@@ -1,71 +1,201 @@
-# 🚀 NestJS E-commerce API
+# Easy Orders API
 
-API de backend para gerenciamento de pedidos de e-commerce, desenvolvida com foco em **Clean Architecture**, **DDD** (Domain-Driven Design) e **TDD** (Test-Driven Development).
+A production-ready e-commerce backend API built with **Clean Architecture**, **Domain-Driven Design (DDD)**, and **Test-Driven Development (TDD)** principles.
 
-## 🛠️ Tecnologias Utilizadas
+## Tech Stack
 
-- **Framework:** [NestJS](https://nestjs.com/)
-- **Linguagem:** TypeScript
-- **ORM:** [Prisma](https://www.prisma.io/)
-- **Banco de Dados:** PostgreSQL
-- **Container:** Docker & Docker Compose
-- **Testes:** Jest
+| Category | Technology |
+|----------|------------|
+| Framework | NestJS 11 |
+| Language | TypeScript 5.7 |
+| Database | PostgreSQL 13 |
+| ORM | Prisma 7 |
+| Testing | Jest 30 |
+| Container | Docker & Docker Compose |
 
-## ⚙️ Arquitetura
+## Architecture
 
-O projeto segue princípios de arquitetura limpa para desacoplar a regra de negócio do framework e do banco de dados:
+This project implements **Clean Architecture** to ensure separation of concerns and maintainability:
 
-- **Entities:** Regras de negócio puras (ex: validação de quantidade e status do pedido).
-- **Services:** Orquestração do fluxo de dados.
-- **Repositories:** Abstração da camada de dados (Pattern Repository), permitindo trocar o ORM ou banco de dados sem afetar a regra de negócio.
-- **DTOs:** Transferência de dados validados entre as camadas.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Controllers (HTTP)                       │
+│              Handle requests and responses                  │
+├─────────────────────────────────────────────────────────────┤
+│                    Services (Use Cases)                     │
+│              Orchestrate business logic                     │
+├─────────────────────────────────────────────────────────────┤
+│                    Entities (Domain)                        │
+│          Pure business rules, no dependencies               │
+├─────────────────────────────────────────────────────────────┤
+│                  Repositories (Data Access)                 │
+│      Abstract interface + Prisma implementation             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-## 🚀 Como rodar o projeto
+### Key Architectural Decisions
 
-### Pré-requisitos
+- **Repository Pattern**: Abstract interface allows swapping Prisma for any other ORM without changing business logic
+- **Domain Validation**: Business rules enforced in entities (e.g., quantity must be > 0)
+- **Dependency Injection**: NestJS native DI for loose coupling and testability
+- **DTOs with Validation**: Type-safe data transfer with class-validator decorators
 
-- Node.js (v18+)
-- Docker e Docker Compose instalados.
+## Domain Design (Event Storming)
 
-### Passo a Passo
+The system was designed using **Event Storming** methodology to map the complete customer journey:
 
-1.  **Clone o repositório e instale as dependências:**
+![Event Storming Diagram](./docs/event-storming.png)
 
-    ```bash
-    npm install
-    ```
+### Flow Overview
 
-2.  **Suba o Banco de Dados:**
-    O projeto utiliza Docker para rodar o PostgreSQL.
+1. **Customer Identification** → Customer enters the platform and identifies themselves
+2. **Registration** → New customers register with CPF, name, and email
+3. **Order Assembly** → Customer selects items:
+   - Snacks (Lanches)
+   - Sides (Acompanhamentos)
+   - Drinks (Bebidas)
+   - Desserts (Sobremesas)
+4. **Validation** → System validates order before confirmation
+5. **Confirmation** → Customer confirms and order is created
 
-    ```bash
-    docker-compose up -d
-    ```
+### Legend
 
-3.  **Configuração de Ambiente:**
-    Crie um arquivo `.env` na raiz baseado no exemplo (se houver) ou configure a URL do banco:
+| Color | Element | Description |
+|-------|---------|-------------|
+| 🟨 Yellow | **Event** | Something that happened in the domain |
+| 🟦 Blue | **Command** | Action triggered by user or system |
+| 🟪 Purple | **Policy** | Business rule that reacts to events |
+| 🟩 Green | **Actor** | User or external system |
+| 📘 Blue (light) | **Model/Screen** | UI representation |
 
-    ```env
-    DATABASE_URL="postgresql://user:password@localhost:5432/nomedobanco?schema=public"
-    ```
+## Project Structure
 
-4.  **Execute as Migrations do Prisma:**
-    Isso criará as tabelas no banco de dados.
+```
+src/
+├── orders/
+│   ├── dto/                    # Data Transfer Objects
+│   ├── entities/               # Domain entities with business rules
+│   ├── enums/                  # Domain enumerations
+│   ├── repositories/           # Repository interface + implementation
+│   ├── orders.controller.ts    # HTTP layer
+│   ├── orders.service.ts       # Business logic
+│   └── orders.module.ts        # Module configuration
+├── prisma.service.ts           # Database connection
+└── main.ts                     # Application bootstrap
+```
 
-    ```bash
-    npx prisma migrate dev
-    ```
+## API Endpoints
 
-5.  **Inicie o Servidor:**
-    ```bash
-    npm run start:dev
-    ```
-    A API estará rodando em `http://localhost:3000`.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/orders` | Create a new order |
+| `GET` | `/orders` | List all orders |
+| `GET` | `/orders/:id` | Get order by ID |
+| `PATCH` | `/orders/:id` | Update order |
+| `DELETE` | `/orders/:id` | Delete order |
 
-## 🧪 Rodando os Testes
+### Order Status Flow
 
-O projeto segue uma abordagem de TDD. Para rodar os testes unitários:
+```
+OPEN → PENDING → PAID
+         ↓
+     CANCELLED
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22+ (LTS)
+- Docker & Docker Compose
+
+### Installation
+
+1. **Clone and install dependencies**
+   ```bash
+   git clone https://github.com/gomes-leonardo/easy-orders.git
+   cd easy-orders
+   npm install
+   ```
+
+2. **Start the database**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database credentials
+   ```
+
+4. **Run migrations**
+   ```bash
+   npx prisma migrate dev
+   ```
+
+5. **Start the server**
+   ```bash
+   npm run start:dev
+   ```
+
+The API will be available at `http://localhost:3000`
+
+## Testing
+
+The project follows **TDD** practices with comprehensive test coverage:
 
 ```bash
-npm run test
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:cov
+
+# Run in watch mode
+npm run test:watch
 ```
+
+### Test Structure
+
+- **Entity tests**: Validate domain business rules
+- **Service tests**: Validate use case orchestration with mocked repositories
+- **Integration tests**: Validate API endpoints (coming soon)
+
+## Docker
+
+### Development
+
+```bash
+docker-compose up -d
+```
+
+### Production
+
+The Dockerfile uses multi-stage builds for optimized production images:
+
+```bash
+docker build -t easy-orders .
+docker run -p 3000:3000 easy-orders
+```
+
+## Roadmap
+
+- [x] Order management (CRUD)
+- [x] Clean Architecture implementation
+- [x] Repository pattern with Prisma
+- [x] Unit tests with Jest
+- [ ] Customer module
+- [ ] Product catalog (Snacks, Sides, Drinks, Desserts)
+- [ ] Authentication & Authorization
+- [ ] Integration tests
+- [ ] API documentation (Swagger)
+- [ ] CI/CD pipeline
+
+## License
+
+MIT
+
+---
+
+Built with Clean Architecture principles by [Leonardo Rodrigues](https://github.com/gomes-leonardo)
