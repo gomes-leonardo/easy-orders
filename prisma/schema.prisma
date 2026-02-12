@@ -24,6 +24,7 @@ enum OrderStatus {
   CANCELLED
 }
 
+
 model Order {
   id          String     @id     @default(uuid())
   productId   String     @default(uuid())
@@ -31,4 +32,21 @@ model Order {
   status      OrderStatus @default(OPEN)     
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ProductCategory {
+  BURGER 
+  DESSERT 
+  DRINK 
+  SIDEDISH
+}
+
+model Product {
+  id            String     @id     @default(uuid())
+  name          String     @unique
+  price         Int
+  category      ProductCategory
+  isAvailable   Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

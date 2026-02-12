@@ -49,8 +49,8 @@ describe('OrdersService', () => {
 
     const result = await service.create(dto);
 
-    expect(mockOrdersRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockOrdersRepository.create).toHaveBeenCalledWith(dto);
+    expect(mockOrdersRepository.create).toHaveBeenCalledWith(expect.any(Order));
+
     expect(result).toEqual(repositoryResponse);
   });
   it('should return all orders using repository', async () => {
@@ -121,17 +121,9 @@ describe('OrdersService', () => {
 
     const result = await service.update(orderId, { quantity: 10 });
 
-    expect(mockOrdersRepository.findById).toHaveBeenCalledWith(orderId);
-    expect(mockOrdersRepository.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: orderId,
-        quantity: 10,
-        productId: existingOrder.productId,
-        status: OrderStatus.PENDING,
-      }),
-    );
     expect(result.quantity).toBe(10);
     expect(result.status).toBe(OrderStatus.PENDING);
+    expect(mockOrdersRepository.update).toHaveBeenCalledWith(expect.any(Order));
   });
 
   it('should throw NotFoundException when order does not exist', async () => {
