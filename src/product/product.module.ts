@@ -16,5 +16,6 @@ import { PrismaProductsRepository } from './repositories/prisma-products.reposit
       useClass: PrismaProductsRepository,
     },
   ],
+  exports: [ProductsRepository],
 })
 export class ProductModule {}

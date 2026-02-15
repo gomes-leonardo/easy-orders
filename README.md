@@ -53,13 +53,24 @@ This project implements **Clean Architecture** to ensure separation of concerns 
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Domain Design (Event Storming)
+
+The system was designed using **Event Storming** methodology to map the complete customer journey:
+
+![Event Storming](./docs/event-storming.png)
+
+> 🔗 [View full board on Miro](https://miro.com/app/board/uXjVGG474i0=/?share_link_id=195510804687)
+
 ### Key Architectural Decisions
 
 - **Repository Pattern**: Abstract interface allows swapping Prisma for any other ORM without changing business logic
-- **Domain Validation**: Business rules enforced in entities (e.g., quantity must be > 0, price must be positive)
+- **Domain Validation**: Business rules enforced in entities via custom `DomainError` class, caught by a global exception filter and returned as `400 Bad Request`
+- **Order Items**: Orders contain multiple items, each with a product reference, quantity, and price fetched from the product catalog at creation time
+- **Soft Delete**: Products use `isDeleted` flag instead of hard delete, preserving referential integrity with existing orders
 - **Dependency Injection**: NestJS native DI for loose coupling and testability
+- **Cross-module communication**: `OrdersService` injects `ProductsRepository` to fetch prices, keeping the domain layer clean
 - **DTOs with Validation**: Type-safe data transfer with class-validator decorators
-- **Swagger Documentation**: Auto-generated API docs with examples
+- **Swagger Documentation**: Auto-generated API docs with examples via `@ApiProperty` decorators
 
 ---
 
@@ -188,27 +199,33 @@ OPEN → PENDING → PAID
 
 ```
 src/
+├── common/
+│   ├── errors/
+│   │   └── domain.error.ts         # Custom domain error class
+│   └── filters/
+│       └── domain-error.filter.ts  # Global exception filter (DomainError → 400)
+│
 ├── orders/
-│   ├── dto/                    # Data Transfer Objects
+│   ├── dto/
 │   │   ├── create.order.dto.ts
+│   │   ├── create.order-item.dto.ts
 │   │   └── update.order.dto.ts
-│   ├── entities/               # Domain entities with business rules
-│   │   └── orders.entity.ts
-│   ├── enums/                  # Domain enumerations
+│   ├── entities/
+│   │   └── orders.entity.ts        # Order with items[], total calculation
+│   ├── enums/
 │   │   └── order-status.enum.ts
-│   ├── repositories/           # Repository pattern
+│   ├── repositories/
 │   │   ├── orders.repository.ts (interface)
 │   │   └── prisma-orders.repository.ts (implementation)
-│   ├── orders.controller.ts    # HTTP layer
-│   ├── orders.service.ts       # Business logic / Use cases
-│   └── orders.module.ts        # Module configuration
+│   ├── orders.controller.ts
+│   ├── orders.service.ts           # Fetches product prices on create/update
+│   └── orders.module.ts
 │
 ├── product/
 │   ├── dto/
-│   │   ├── create.product.dto.ts
-│   │   └── update.product.dto.ts
+│   │   └── create.product.dto.ts
 │   ├── entities/
-│   │   └── product.entity.ts
+│   │   └── product.entity.ts       # Soft delete support (isDeleted)
 │   ├── enums/
 │   │   └── product-category.enum.ts
 │   ├── repositories/
@@ -216,12 +233,12 @@ src/
 │   │   └── prisma-products.repository.ts (implementation)
 │   ├── product.controller.ts
 │   ├── product.service.ts
-│   └── product.module.ts
+│   └── product.module.ts           # Exports ProductsRepository
 │
-├── prisma.service.ts           # Database connection
-├── prisma.module.ts            # Prisma module
-├── app.module.ts               # Root module
-└── main.ts                     # Application bootstrap
+├── prisma.service.ts               # Database connection (PrismaPg adapter)
+├── prisma.module.ts                # Prisma module
+├── app.module.ts                   # Root module
+└── main.ts                         # Bootstrap + global pipes & filters
 ```
 
 ---
@@ -337,20 +354,46 @@ docker compose down -v
 
 ---
 
+## 🛡️ Error Handling
+
+The project uses a **layered error strategy** that keeps the domain clean:
+
+| Layer | Error Type | HTTP Status |
+|-------|-----------|-------------|
+| **Domain (Entity)** | `DomainError` | `400 Bad Request` |
+| **Service (Use Case)** | `NotFoundException` | `404 Not Found` |
+| **Controller (DTO)** | `ValidationPipe` | `400 Bad Request` |
+| **Unexpected** | `Error` | `500 Internal Server Error` |
+
+Domain entities throw `DomainError` (pure, no NestJS dependency). A global `DomainErrorFilter` intercepts them and returns a proper `400` response:
+
+```json
+{
+  "statusCode": 400,
+  "error": "Bad Request",
+  "message": "Order must have at least one item"
+}
+```
+
+---
+
 ## 🗺️ Roadmap
 
-- [x] Order management (CRUD)
-- [x] Product catalog (CRUD)
+- [x] Order management (CRUD with items)
+- [x] Product catalog (CRUD with soft delete)
+- [x] Order ↔ Product relation (prices fetched from catalog)
 - [x] Clean Architecture implementation
 - [x] Repository pattern with Prisma
+- [x] Domain error handling (DomainError + Exception Filter)
 - [x] Unit tests with Jest
 - [x] API documentation (Swagger)
 - [x] Docker setup
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Database seed
 - [ ] Customer module
 - [ ] Authentication & Authorization (JWT)
 - [ ] Payment integration
 - [ ] Integration tests
-- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Rate limiting & security headers
 - [ ] Logging & monitoring
 

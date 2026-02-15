@@ -8,6 +8,7 @@ import { OrderStatus } from './enums/order-status.enum';
 describe('Orders Controller', () => {
   let service: OrdersService;
   let controller: OrdersController;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrdersController],
@@ -26,71 +27,59 @@ describe('Orders Controller', () => {
     service = module.get<OrdersService>(OrdersService);
     controller = module.get<OrdersController>(OrdersController);
   });
-  it('Create - ORDERS: Should create a new order.', () => {
-    const productId = randomUUID();
-    const quantity = 4;
-    const status = OrderStatus.OPEN;
 
-    const dto = { productId, quantity, status };
-
-    const expectedResult = {
-      productId,
-      quantity,
+  it('Create - ORDERS: Should call service.create with correct dto', async () => {
+    const dto = {
+      items: [{ productId: randomUUID(), quantity: 2 }],
       status: OrderStatus.OPEN,
     };
-    (service.create as jest.Mock).mockReturnValue(expectedResult);
+    const expectedResult = { id: 'order-123', ...dto };
 
-    const response = controller.create(dto);
+    (service.create as jest.Mock).mockResolvedValue(expectedResult);
+
+    const response = await controller.create(dto);
 
     expect(response).toEqual(expectedResult);
     expect(service.create).toHaveBeenCalledWith(dto);
   });
-  it('Update - ORDERS: Should update order quantity.', () => {
+
+  it('Update - ORDERS: Should call service.update with id from URL and dto from body', async () => {
     const orderId = randomUUID();
-    const dto = { quantity: 10 };
-
-    const expectedResult = {
-      id: orderId,
-      productId: randomUUID(),
-      quantity: 10,
-      status: OrderStatus.OPEN,
+    const dto = {
+      items: [{ productId: randomUUID(), quantity: 5 }],
     };
+    const expectedResult = { id: orderId, status: OrderStatus.OPEN };
 
-    (service.update as jest.Mock).mockReturnValue(expectedResult);
+    (service.update as jest.Mock).mockResolvedValue(expectedResult);
 
-    const response = controller.update(orderId, dto);
+    const response = await controller.update(orderId, dto);
 
     expect(response).toEqual(expectedResult);
     expect(service.update).toHaveBeenCalledWith(orderId, dto);
   });
-  it('Delete - ORDERS: Should delete order sucessfuly.', () => {
+
+  it('Delete - ORDERS: Should call service.delete with correct id', async () => {
     const orderId = randomUUID();
+    (service.delete as jest.Mock).mockResolvedValue({ deleted: true });
 
-    const expectedResult = {
-      id: orderId,
-    };
+    const response = await controller.delete(orderId);
 
-    (service.delete as jest.Mock).mockReturnValue(expectedResult);
-
-    const response = controller.delete(orderId);
-
-    expect(response).toEqual(expectedResult);
+    expect(response).toEqual({ deleted: true });
     expect(service.delete).toHaveBeenCalledWith(orderId);
   });
 
-  it('List All - ORDERS: Should return all orders.', () => {
-    const productId = randomUUID();
-    const quantity = 4;
+  it('List All - ORDERS: Should return an array of orders', async () => {
+    const expectedResult = [
+      { id: '1', status: OrderStatus.OPEN, items: [] },
+      { id: '2', status: OrderStatus.PENDING, items: [] },
+    ];
 
-    const expectedResult = {
-      productId,
-      quantity,
-      status: OrderStatus.OPEN,
-    };
-    (service.listAll as jest.Mock).mockReturnValue(expectedResult);
+    (service.listAll as jest.Mock).mockResolvedValue(expectedResult);
 
-    const response = controller.listAll();
+    const response = await controller.listAll();
 
     expect(response).toEqual(expectedResult);
+    expect(Array.isArray(response)).toBe(true);
+    expect(service.listAll).toHaveBeenCalled();
   });
 });

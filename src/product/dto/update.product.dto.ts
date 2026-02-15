@@ -1,50 +1,33 @@
 import {
-  IsUUID,
   IsInt,
   Min,
   IsEnum,
   IsString,
   IsBoolean,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductCategory } from '../enums/product-category.enum';
 
 export class UpdateProductDTO {
-  @ApiProperty({
-    description: 'ID do produto a ser atualizado',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @IsUUID()
-  id: string;
-
-  @ApiProperty({
-    description: 'Nome do produto',
-    example: 'X-Burger Bacon Deluxe',
-  })
+  @ApiProperty({ description: 'Product name', example: 'Maple Burger', required: false })
+  @IsOptional()
   @IsString()
-  name: string;
+  name?: string;
 
-  @ApiProperty({
-    description: 'Preço do produto em centavos',
-    example: 2800,
-    minimum: 1,
-  })
+  @ApiProperty({ description: 'Price in cents', example: 2900, minimum: 1, required: false })
+  @IsOptional()
   @IsInt()
   @Min(1)
-  price: number;
+  price?: number;
 
-  @ApiProperty({
-    description: 'Produto disponível para venda',
-    example: true,
-  })
+  @ApiProperty({ description: 'Whether the product is available', example: true, required: false })
+  @IsOptional()
   @IsBoolean()
-  isAvailable: boolean;
+  isAvailable?: boolean;
 
-  @ApiProperty({
-    description: 'Categoria do produto',
-    enum: ProductCategory,
-    example: ProductCategory.BURGER,
-  })
+  @ApiProperty({ description: 'Product category', enum: ProductCategory, example: ProductCategory.BURGER, required: false })
+  @IsOptional()
   @IsEnum(ProductCategory)
-  category: ProductCategory;
+  category?: ProductCategory;
 }

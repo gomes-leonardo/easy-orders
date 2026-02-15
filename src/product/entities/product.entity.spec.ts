@@ -3,23 +3,32 @@ import { ProductCategory } from '../enums/product-category.enum';
 import { Product } from './product.entity';
 
 describe('Product Entity', () => {
-  it('Product entity must return sucessfully', () => {
+  it('Product entity must return successfully with default values', () => {
     const id = randomUUID();
-    const name = 'Cheddar';
-    const category = ProductCategory.BURGER;
-    const price = 39.55;
-
-    const product = new Product({
+    const props = {
       id,
-      name,
+      name: 'Cheddar',
+      category: ProductCategory.BURGER,
+      price: 39.55,
       isAvailable: true,
-      category,
-      price,
-    });
+    };
+
+    const product = new Product(props);
+
     expect(product.id).toEqual(id);
-    expect(product.name).toEqual(name);
-    expect(product.price).toEqual(price);
+    expect(product.isDeleted).toBe(false);
     expect(product.category).toEqual(ProductCategory.BURGER);
+  });
+
+  it('Should correctly set isDeleted if provided', () => {
+    const product = new Product({
+      name: 'Old Burger',
+      price: 10,
+      category: ProductCategory.BURGER,
+      isAvailable: false,
+      isDeleted: true,
+    });
+    expect(product.isDeleted).toBe(true);
   });
 
   it('Should throw an error if price is less than 0', () => {
