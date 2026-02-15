@@ -24,14 +24,26 @@ enum OrderStatus {
   CANCELLED
 }
 
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int     
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
 
 model Order {
-  id          String     @id     @default(uuid())
-  productId   String     @default(uuid())
-  quantity    Int
-  status      OrderStatus @default(OPEN)     
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String      @id @default(uuid())
+  status    OrderStatus @default(OPEN)
+  items     OrderItem[] 
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 enum ProductCategory {
@@ -46,7 +58,10 @@ model Product {
   name          String     @unique
   price         Int
   category      ProductCategory
+  isDeleted     Boolean @default(false)
   isAvailable   Boolean
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  orderItems OrderItem[]
 }

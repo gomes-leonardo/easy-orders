@@ -10,6 +10,7 @@ interface PrismaProduct {
   price: number;
   category: string;
   isAvailable: boolean;
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +27,7 @@ export class PrismaProductsRepository implements ProductsRepository {
       isAvailable: raw.isAvailable,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+      isDeleted: raw.isDeleted ?? false,
     });
   }
 
@@ -42,8 +44,8 @@ export class PrismaProductsRepository implements ProductsRepository {
     return this.toEntity(created);
   }
   async findById(id: string): Promise<Product | null> {
-    const found = await this.prismaService.product.findUnique({
-      where: { id },
+    const found = await this.prismaService.product.findFirst({
+      where: { id, isDeleted: false },
     });
 
     if (!found) return null;
@@ -64,12 +66,17 @@ export class PrismaProductsRepository implements ProductsRepository {
     return this.toEntity(updatedProduct);
   }
   async listAll(): Promise<Product[]> {
-    const products = await this.prismaService.product.findMany();
+    const products = await this.prismaService.product.findMany({
+      where: { isDeleted: false },
+    });
     return products.map((p) => this.toEntity(p));
   }
   async delete(id: string): Promise<void> {
-    await this.prismaService.product.delete({
+    await this.prismaService.product.update({
       where: { id },
+      data: {
+        isDeleted: true,
+      },
     });
   }
 }

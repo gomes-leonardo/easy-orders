@@ -9,7 +9,10 @@ export class ProductsService {
   constructor(private readonly productsRepository: ProductsRepository) {}
 
   async create(createProductDto: CreateProductDTO): Promise<Product> {
-    const product = new Product(createProductDto);
+    const product = new Product({
+      ...createProductDto,
+      isDeleted: false,
+    });
     return await this.productsRepository.create(product);
   }
 
@@ -37,6 +40,7 @@ export class ProductsService {
       category: updateProductDto.category ?? existing.category,
       price: updateProductDto.price ?? existing.price,
       isAvailable: updateProductDto.isAvailable ?? existing.isAvailable,
+      isDeleted: existing.isDeleted,
     });
     return await this.productsRepository.update(updatedProduct);
   }

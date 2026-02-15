@@ -4,9 +4,10 @@ import { OrdersService } from './orders.service';
 import { OrdersRepository } from './repositories/orders.repository';
 import { PrismaOrdersRepository } from './repositories/prisma-orders.repository';
 import { PrismaModule } from '../prisma.module';
+import { ProductModule } from '../product/product.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ProductModule],
   controllers: [OrdersController],
   providers: [
     OrdersService,

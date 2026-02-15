@@ -3,12 +3,13 @@ import { PrismaService } from '../../prisma.service';
 import { OrdersRepository } from './orders.repository';
 import { Order } from '../entities/orders.entity';
 import { OrderStatus } from '../enums/order-status.enum';
+import { OrderStatus as PrismaOrderStatus } from 'generated/prisma/client';
+import { OrderItem } from 'generated/prisma/client';
 
 interface PrismaOrder {
   id: string;
-  productId: string;
-  quantity: number;
   status: string;
+  items: OrderItem[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,9 +20,8 @@ export class PrismaOrdersRepository implements OrdersRepository {
   private toEntity(raw: PrismaOrder): Order {
     return new Order({
       id: raw.id,
-      quantity: raw.quantity,
-      productId: raw.productId,
       status: raw.status as OrderStatus,
+      items: raw.items,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -30,9 +30,20 @@ export class PrismaOrdersRepository implements OrdersRepository {
   async create(order: Order): Promise<Order> {
     const created = await this.prismaService.order.create({
       data: {
-        quantity: order.quantity,
-        productId: order.productId,
-        status: order.status,
+        id: order.id,
+        status: order.status as PrismaOrderStatus,
+        items: {
+          create: order.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        },
+        updatedAt: order.updatedAt,
+        createdAt: order.createdAt,
+      },
+      include: {
+        items: true,
       },
     });
 
@@ -40,13 +51,20 @@ export class PrismaOrdersRepository implements OrdersRepository {
   }
 
   async listAll(): Promise<Order[]> {
-    const orders = await this.prismaService.order.findMany();
+    const orders = await this.prismaService.order.findMany({
+      include: {
+        items: true,
+      },
+    });
     return orders.map((o) => this.toEntity(o));
   }
 
   async findById(id: string): Promise<Order | null> {
-    const found = await this.prismaService.order.findUnique({
+    const found = await this.prismaService.order.findFirst({
       where: { id },
+      include: {
+        items: true,
+      },
     });
 
     if (!found) return null;
@@ -55,13 +73,27 @@ export class PrismaOrdersRepository implements OrdersRepository {
   }
 
   async update(order: Order): Promise<Order> {
-    const updated = await this.prismaService.order.update({
-      where: { id: order.id },
-      data: {
-        quantity: order.quantity,
-        productId: order.productId,
-        status: order.status,
-      },
+    const updated = await this.prismaService.$transaction(async (tx) => {
+      await tx.orderItem.deleteMany({
+        where: { orderId: order.id },
+      });
+
+      return await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: order.status as PrismaOrderStatus,
+          items: {
+            create: order.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
     });
 
     return this.toEntity(updated);

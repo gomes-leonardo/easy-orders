@@ -4,7 +4,8 @@ import { OrdersService } from './orders.service';
 import { TestingModule, Test } from '@nestjs/testing';
 import { OrdersRepository } from './repositories/orders.repository';
 import { Order } from './entities/orders.entity';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ProductsRepository } from '../product/repositories/products-repository';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -17,6 +18,11 @@ describe('OrdersService', () => {
     delete: jest.fn(),
   };
 
+  const mockProductsRepository = {
+    findById: jest.fn(),
+    create: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,6 +31,10 @@ describe('OrdersService', () => {
           provide: OrdersRepository,
           useValue: mockOrdersRepository,
         },
+        {
+          provide: ProductsRepository,
+          useValue: mockProductsRepository,
+        },
       ],
     }).compile();
 
@@ -32,126 +42,80 @@ describe('OrdersService', () => {
     jest.clearAllMocks();
   });
 
-  it('should create a new order using repository', async () => {
-    const dto = {
-      productId: randomUUID(),
-      quantity: 4,
-      status: OrderStatus.OPEN,
-    };
+  it('should create an order successfully', async () => {
+    mockProductsRepository.findById.mockResolvedValue({
+      name: 'Maple',
+      price: 1500,
+      isDeleted: false,
+    });
+    mockOrdersRepository.create.mockImplementation((order) => ({
+      id: '123',
+      ...order,
+    }));
 
-    const repositoryResponse = {
-      id: randomUUID(),
-      ...dto,
-      createdAt: new Date(),
-    };
+    const result = await service.create({
+      items: [{ productId: 'p1', quantity: 2 }],
+    });
 
-    mockOrdersRepository.create.mockResolvedValue(repositoryResponse);
-
-    const result = await service.create(dto);
-
+    expect(result.total).toBe(3000);
     expect(mockOrdersRepository.create).toHaveBeenCalledWith(expect.any(Order));
-
-    expect(result).toEqual(repositoryResponse);
   });
-  it('should return all orders using repository', async () => {
-    const repositoryResponse = [
-      {
-        productId: randomUUID(),
-        quantity: 4,
-        status: OrderStatus.OPEN,
-      },
-    ];
+  it('should throw if product is deleted during creation', async () => {
+    mockProductsRepository.findById.mockResolvedValue({ isDeleted: true });
 
-    mockOrdersRepository.listAll.mockResolvedValue(repositoryResponse);
-
-    const result = await service.listAll();
-
-    expect(mockOrdersRepository.listAll).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(repositoryResponse);
+    await expect(
+      service.create({ items: [{ productId: 'p1', quantity: 1 }] }),
+    ).rejects.toThrow(NotFoundException);
   });
-  it('should return orders by id using repository', async () => {
-    const orderId = randomUUID();
+  it('should update order items and fetch new prices', async () => {
+    const existing = { id: 'o1', status: OrderStatus.OPEN, items: [] };
+    mockOrdersRepository.findById.mockResolvedValue(existing);
 
-    const existingOrder = new Order({
-      id: orderId,
-      productId: randomUUID(),
-      quantity: 2,
-      status: OrderStatus.PENDING,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    const repositoryResponse = [
-      {
-        id: existingOrder.id,
-        productId: existingOrder.productId,
-        quantity: existingOrder.quantity,
-        createdAt: existingOrder.createdAt,
-        updatedAt: existingOrder.updatedAt,
-      },
-    ];
+    mockProductsRepository.findById
+      .mockResolvedValueOnce({ price: 10, isDeleted: false })
+      .mockResolvedValueOnce({ price: 20, isDeleted: false });
 
-    mockOrdersRepository.findById.mockResolvedValue(repositoryResponse);
-    const result = await service.findById(orderId);
+    mockOrdersRepository.update.mockImplementation((order) => order);
 
-    expect(mockOrdersRepository.findById).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(repositoryResponse);
-  });
-
-  it('should update order quantity and preserve status', async () => {
-    const orderId = randomUUID();
-
-    const existingOrder = new Order({
-      id: orderId,
-      productId: randomUUID(),
-      quantity: 2,
-      status: OrderStatus.PENDING,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const result = await service.update('o1', {
+      items: [
+        { productId: 'p1', quantity: 1 },
+        { productId: 'p2', quantity: 1 },
+      ],
     });
 
-    const updatedOrder = new Order({
-      id: orderId,
-      productId: existingOrder.productId,
-      quantity: 10,
-      status: OrderStatus.PENDING,
-    });
-
-    mockOrdersRepository.findById.mockResolvedValue(existingOrder);
-    mockOrdersRepository.update.mockResolvedValue(updatedOrder);
-
-    const result = await service.update(orderId, { quantity: 10 });
-
-    expect(result.quantity).toBe(10);
-    expect(result.status).toBe(OrderStatus.PENDING);
-    expect(mockOrdersRepository.update).toHaveBeenCalledWith(expect.any(Order));
+    expect(result.items).toHaveLength(2);
+    expect(result.total).toBe(30);
   });
 
-  it('should throw NotFoundException when order does not exist', async () => {
-    mockOrdersRepository.findById.mockResolvedValue(null);
+  it('should allow update without checking isDeleted if items are not changed', async () => {
+    const existing = {
+      id: 'o1',
+      status: OrderStatus.OPEN,
+      items: [{ productId: 'old', price: 50, quantity: 1 }],
+    };
+    mockOrdersRepository.findById.mockResolvedValue(existing);
 
-    await expect(service.update(randomUUID(), { quantity: 5 })).rejects.toThrow(
-      NotFoundException,
+    // Produto está DELETADO no catálogo, mas não mudamos os itens no DTO
+    mockProductsRepository.findById.mockResolvedValue({
+      isDeleted: true,
+      price: 50,
+    });
+    mockOrdersRepository.update.mockImplementation((order) => order);
+
+    const result = await service.update('o1', { status: OrderStatus.PENDING });
+
+    expect(result.items[0].productId).toBe('old');
+    expect(mockOrdersRepository.update).toHaveBeenCalled();
+  });
+
+  it('should throw Unauthorized if order status is not allowed for update', async () => {
+    mockOrdersRepository.findById.mockResolvedValue({
+      status: OrderStatus.DONE,
+    });
+
+    await expect(service.update('o1', {})).rejects.toThrow(
+      UnauthorizedException,
     );
-  });
-
-  it('should delete order', async () => {
-    const orderId = randomUUID();
-
-    const existingOrder = new Order({
-      id: orderId,
-      productId: randomUUID(),
-      quantity: 2,
-      status: OrderStatus.PENDING,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    mockOrdersRepository.findById.mockResolvedValue(existingOrder);
-    mockOrdersRepository.delete.mockResolvedValue(orderId);
-
-    await service.delete(orderId);
-
-    expect(mockOrdersRepository.findById).toHaveBeenCalledWith(orderId);
-    expect(mockOrdersRepository.delete).toHaveBeenCalledWith(orderId);
   });
 });

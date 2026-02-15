@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { DomainErrorFilter } from './common/filters/domain-error.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +25,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.useGlobalFilters(new DomainErrorFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   logger.log(`🚀 Application is running on: ${await app.getUrl()}`);

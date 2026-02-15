@@ -1,3 +1,4 @@
+import { DomainError } from '../../common/errors/domain.error';
 import { ProductCategory } from '../enums/product-category.enum';
 
 interface ProductProps {
@@ -6,6 +7,7 @@ interface ProductProps {
   category: ProductCategory;
   price: number;
   isAvailable: boolean;
+  isDeleted?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -18,6 +20,7 @@ export class Product {
   category: ProductCategory;
   createdAt?: Date;
   updatedAt?: Date;
+  isDeleted: boolean;
 
   constructor(props: ProductProps) {
     this.id = props.id;
@@ -27,12 +30,13 @@ export class Product {
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     this.isAvailable = props.isAvailable;
+    this.isDeleted = props.isDeleted ?? false;
 
     if (this.price <= 0) {
-      throw new Error('Price must be greater than 0');
+      throw new DomainError('Price must be greater than 0');
     }
     if (!this.name) {
-      throw new Error('Product name is required');
+      throw new DomainError('Product name is required');
     }
   }
 }
