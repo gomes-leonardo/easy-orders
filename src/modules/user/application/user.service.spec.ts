@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { User } from '../domain/entities/user.entity';
 import { UserRole } from '../domain/enums/user-role.enum';
@@ -191,6 +192,25 @@ describe('UserService', () => {
       expect(mockUserRepository.listAll).toHaveBeenCalled();
 
       expect(result?.length).toEqual(2);
+    });
+    it('should ignore role injected in DTO and always create a Customer', async () => {
+      const dtoComRoleInjetada: any = {
+        email: 'hacker@email.com',
+        password: 'Mudar@123',
+        role: UserRole.ADMIN,
+      };
+
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.create.mockImplementation((u: User) => u);
+
+      const result = await service.create(dtoComRoleInjetada);
+
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: UserRole.CUSTOMER,
+        }),
+      );
+      expect(result.role).toBe(UserRole.CUSTOMER);
     });
   });
 });

@@ -16,6 +16,6 @@ import { HashModule } from '../hash/hash.module';
       useClass: PrismaUserRepository,
     },
   ],
-  exports: [UserRepository],
+  exports: [UserRepository, UserService],
 })
 export class UserModule {}
