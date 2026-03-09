@@ -4,15 +4,20 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { DomainErrorFilter } from './common/filters/domain-error.filter';
+import cookieParser from 'cookie-parser';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new HttpExceptionFilter(), new DomainErrorFilter());
+  app.use(cookieParser());
   const logger = new Logger('Bootstrap');
 
   const config = new DocumentBuilder()
     .setTitle('Easy Order API')
     .setDescription('API documentation for the easy order system')
     .setVersion('1.0')
+    .addCookieAuth('access_token')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -25,8 +30,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
-  app.useGlobalFilters(new DomainErrorFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   logger.log(`🚀 Application is running on: ${await app.getUrl()}`);
