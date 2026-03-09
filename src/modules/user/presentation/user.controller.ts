@@ -1,8 +1,11 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { UserService } from '../application/user.service';
 import { CreateUserDTO } from '../application/dto/create-user.dto';
 import { CreateAdminDTO } from '../application/dto/create-admin.dto';
 import { UserResponseDTO } from '../application/dto/user-response-dto';
+import { RolesGuard } from '../../auth/infra/guards/roles.guard';
+import { Roles } from '../../auth/infra/decorators/roles.decorator';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('/user')
 export class UserController {
@@ -22,6 +25,8 @@ export class UserController {
   }
 
   @Post('/admin')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
   async createAdmin(@Body() dto: CreateAdminDTO): Promise<UserResponseDTO> {
     const user = await this.userService.createAdmin(dto);
 

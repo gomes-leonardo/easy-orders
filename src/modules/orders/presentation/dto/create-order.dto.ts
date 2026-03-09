@@ -34,10 +34,6 @@ export class CreateOrderDTO {
   @ArrayMinSize(1)
   items: CreateOrderItemDTO[];
 
-  @ApiProperty({ example: 'f82093f7-e2e4-4231-b84c-c12889056fcd' })
-  @IsUUID()
-  userId: string;
-
   @ApiProperty({ enum: OrderStatus, required: false })
   @IsOptional()
   @IsEnum(OrderStatus)

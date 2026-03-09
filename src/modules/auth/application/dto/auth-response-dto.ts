@@ -1,6 +1,8 @@
 export class AuthResponseDTO {
-  id: string;
-  role: string;
+  user: {
+    id: string;
+    role: string;
+    message: string;
+  };
   token: string;
-  message: string;
 }

@@ -58,6 +58,7 @@ describe('AuthService', () => {
   it('should validate user with CPF and return JWT sucessfully.', async () => {
     const cpf = '047.550.850-55';
     mockUserService.findByCpf.mockResolvedValue({
+      id: '1',
       cpf,
     });
 

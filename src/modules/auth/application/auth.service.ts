@@ -46,11 +46,17 @@ export class AuthService {
     };
     const token = this.jwtService.sign(payload);
 
+    if (!existing.id) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
     return {
-      id: existing.id!,
-      role: existing.role,
+      user: {
+        id: existing.id,
+        role: existing.role,
+        message: 'User authenticated successfully',
+      },
       token: token,
-      message: 'User authenticated sucessfully',
     };
   }
 
@@ -68,12 +74,16 @@ export class AuthService {
     };
 
     const token = this.jwtService.sign(payload);
-
+    if (!existing.id) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
     return {
-      id: existing.id!,
-      role: existing.role,
-      token,
-      message: 'User authenticated successfully',
+      user: {
+        id: existing.id,
+        role: existing.role,
+        message: 'User authenticated successfully',
+      },
+      token: token,
     };
   }
   async login(dto: AuthRequestDTO): Promise<AuthResponseDTO> {
@@ -86,5 +96,8 @@ export class AuthService {
     }
 
     throw new BadRequestException('Email/password or CPF must be provided.');
+  }
+  logout() {
+    return { message: 'You have been successfully logged out.' };
   }
 }

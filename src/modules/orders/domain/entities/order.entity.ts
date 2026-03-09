@@ -8,7 +8,7 @@ export interface OrderItemProps {
 }
 interface OrderProps {
   id?: string;
-  userId: string;
+  userId?: string;
   status?: OrderStatus;
   items: OrderItemProps[];
   createdAt?: Date;
@@ -17,7 +17,7 @@ interface OrderProps {
 
 export class Order {
   public readonly id?: string;
-  public readonly userId: string;
+  public readonly userId?: string;
   public readonly items: OrderItemProps[];
   public readonly status: OrderStatus;
   public readonly total: number;

@@ -4,15 +4,18 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { DomainErrorFilter } from './common/filters/domain-error.filter';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
   const logger = new Logger('Bootstrap');
 
   const config = new DocumentBuilder()
     .setTitle('Easy Order API')
     .setDescription('API documentation for the easy order system')
     .setVersion('1.0')
+    .addCookieAuth('access_token')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

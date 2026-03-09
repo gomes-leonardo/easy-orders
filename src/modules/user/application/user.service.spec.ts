@@ -202,6 +202,7 @@ describe('UserService', () => {
 
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.create.mockImplementation((u: User) => u);
+      mockHashService.hash.mockResolvedValue('Hashed@123');
 
       const result = await service.create(dtoComRoleInjetada);
 

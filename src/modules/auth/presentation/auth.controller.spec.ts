@@ -3,15 +3,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../application/auth.service';
 import { AuthRequestDTO } from '../application/dto/auth-request-dto';
 import { AuthController } from './auth.controller';
+import { Response } from 'express';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let service: AuthService;
 
   const mockAuthService = {
     validateUser: jest.fn(),
     login: jest.fn(),
   };
+
+  const mockRes = {
+    cookie: jest.fn(),
+  } as unknown as Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,24 +29,32 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    service = module.get<AuthService>(AuthService);
   });
 
   it('should login successfully using CPF', async () => {
     const loginDto: AuthRequestDTO = { cpf: '305.000.480-02' };
-    const mockResponse = {
+
+    mockAuthService.login.mockResolvedValue({
+      user: {
+        id: '1',
+        role: 'CUSTOMER',
+        message: 'User authenticated successfully',
+      },
+      token: 'mock-token',
+    });
+
+    const result = await controller.login(loginDto, mockRes);
+
+    expect(result).toEqual({
       id: '1',
       role: 'CUSTOMER',
-      token: 'jwt-via-cpf',
       message: 'User authenticated successfully',
-    };
-
-    mockAuthService.login.mockResolvedValue(mockResponse);
-
-    const result = await controller.login(loginDto);
-
-    expect(result).toEqual(mockResponse);
-    expect(mockAuthService.login).toHaveBeenCalledWith(loginDto);
+    });
+    expect(mockRes.cookie).toHaveBeenCalledWith(
+      'access_token',
+      'mock-token',
+      expect.any(Object),
+    );
   });
 
   describe('login', () => {
@@ -52,18 +64,23 @@ describe('AuthController', () => {
         password: 'Mudar@123',
       };
 
-      const expectedResponse = {
+      mockAuthService.login.mockResolvedValue({
+        user: {
+          id: 'user-123',
+          role: 'CUSTOMER',
+          message: 'User authenticated successfully',
+        },
+        token: 'mock-jwt-token',
+      });
+
+      const result = await controller.login(loginDto, mockRes);
+
+      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto);
+      expect(result).toEqual({
         id: 'user-123',
         role: 'CUSTOMER',
-        token: 'mock-jwt-token',
         message: 'User authenticated successfully',
-      };
-      mockAuthService.login.mockResolvedValue(expectedResponse);
-
-      const result = await controller.login(loginDto);
-
-      expect(service.login).toHaveBeenCalledWith(loginDto);
-      expect(result).toEqual(expectedResponse);
+      });
     });
   });
 });

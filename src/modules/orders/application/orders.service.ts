@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -42,20 +43,26 @@ export class OrdersService {
     );
   }
 
-  async create(dto: CreateOrderDTO): Promise<Order> {
+  async create(dto: CreateOrderDTO, userId: string): Promise<Order> {
     const items = await this.mapItemsWithPrices(dto.items, true);
     const order = new Order({
+      userId,
       items,
-      userId: dto.userId,
       status: dto.status ?? OrderStatus.OPEN,
     });
     return this.ordersRepository.create(order);
   }
 
-  async update(id: string, dto: UpdateOrderDTO): Promise<Order> {
+  async update(
+    id: string,
+    dto: UpdateOrderDTO,
+    userId: string,
+  ): Promise<Order> {
     const existing = await this.ordersRepository.findById(id);
 
     if (!existing) throw new NotFoundException(`Order ${id} not found`);
+    if (existing.userId !== userId)
+      throw new ForbiddenException('You can only update your own orders.');
 
     const allowedStatuses = [OrderStatus.OPEN, OrderStatus.PENDING];
     if (!allowedStatuses.includes(existing.status)) {
@@ -71,8 +78,8 @@ export class OrdersService {
 
     const updated = new Order({
       id,
+      userId,
       items,
-      userId: existing.userId,
       status: existing.status,
       createdAt: existing.createdAt,
       updatedAt: existing.updatedAt,
@@ -85,14 +92,20 @@ export class OrdersService {
     return this.ordersRepository.listAll();
   }
 
-  async findById(id: string): Promise<Order | null> {
-    return this.ordersRepository.findById(id);
+  async findById(id: string, userId: string): Promise<Order | null> {
+    const order = await this.ordersRepository.findById(id);
+    if (!order) return null;
+    if (order.userId !== userId)
+      throw new ForbiddenException('You can only view your own orders.');
+    return order;
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, userId: string): Promise<void> {
     const existing = await this.ordersRepository.findById(id);
 
     if (!existing) throw new NotFoundException(`Order ${id} not found`);
+    if (existing.userId !== userId)
+      throw new ForbiddenException('You can only delete your own orders.');
 
     return this.ordersRepository.delete(id);
   }

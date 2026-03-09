@@ -33,6 +33,9 @@ export class PrismaOrderRepository implements OrderRepository {
   }
 
   async create(order: Order): Promise<Order> {
+    if (!order.userId) {
+      throw new Error('Order must have a userId');
+    }
     const created = await this.prismaService.order.create({
       data: {
         id: order.id,
