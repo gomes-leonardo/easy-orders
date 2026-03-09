@@ -5,9 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { DomainErrorFilter } from './common/filters/domain-error.filter';
 import cookieParser from 'cookie-parser';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new HttpExceptionFilter(), new DomainErrorFilter());
   app.use(cookieParser());
   const logger = new Logger('Bootstrap');
 
@@ -28,8 +30,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
-  app.useGlobalFilters(new DomainErrorFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   logger.log(`🚀 Application is running on: ${await app.getUrl()}`);

@@ -1,4 +1,4 @@
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../../../../prisma.service';
 import { User } from '../../domain/entities/user.entity';
 import { UserRepository } from '../../domain/repositories/user-repository';
 import { UserRole } from '../../domain/enums/user-role.enum';

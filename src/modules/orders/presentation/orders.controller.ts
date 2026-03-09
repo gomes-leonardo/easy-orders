@@ -19,6 +19,7 @@ import { OrdersService } from '../application/orders.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/infra/guards/roles.guard';
 import { AuthenticatedRequest } from '../../auth/infra/interfaces/authenticated-request';
+import { Roles } from '../../auth/infra/decorators/roles.decorator';
 
 @Controller('/orders')
 export class OrdersController {
@@ -54,6 +55,7 @@ export class OrdersController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
   listAll(): Promise<Order[]> {
     return this.ordersService.listAll();
   }

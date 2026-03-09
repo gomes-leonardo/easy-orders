@@ -39,17 +39,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const payload = {
-      sub: existing.id,
-      email: existing.email,
-      role: existing.role,
-    };
-    const token = this.jwtService.sign(payload);
-
     if (!existing.id) {
       throw new UnauthorizedException('Invalid credentials.');
     }
-
+    const token = this.generateToken({
+      id: existing.id,
+      email: existing.email,
+      role: existing.role,
+    });
     return {
       user: {
         id: existing.id,
@@ -67,16 +64,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const payload = {
-      sub: existing.id,
-      email: existing.email,
-      role: existing.role,
-    };
-
-    const token = this.jwtService.sign(payload);
     if (!existing.id) {
       throw new UnauthorizedException('Invalid credentials.');
     }
+
+    const token = this.generateToken({
+      id: existing.id,
+      email: existing.email,
+      role: existing.role,
+    });
     return {
       user: {
         id: existing.id,
@@ -99,5 +95,10 @@ export class AuthService {
   }
   logout() {
     return { message: 'You have been successfully logged out.' };
+  }
+
+  generateToken(user: { id: string; email?: string; role: string }): string {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    return this.jwtService.sign(payload);
   }
 }
